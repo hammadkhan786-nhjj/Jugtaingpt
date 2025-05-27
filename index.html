@@ -1,94 +1,19 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JugtainGPT - Savage AI Chat</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #1e1e1e;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        #chatbox {
-            width: 90%;
-            max-width: 600px;
-            height: 70vh;
-            overflow-y: auto;
-            border: 2px solid #555;
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #111;
-        }
-        #userInput {
-            width: 70%;
-            padding: 10px;
-            font-size: 16px;
-        }
-        #sendBtn {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #e91e63;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        .msg {
-            margin: 5px 0;
-        }
-        .user {
-            color: #8bc34a;
-        }
-        .bot {
-            color: #03a9f4;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Jugtaingpt - Dark Mode</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>JugtainGPT</h1>
-    <div id="chatbox"></div>
-    <input type="text" id="userInput" placeholder="Teri baari, likh!" />
-    <button id="sendBtn">Phaaro</button>
-
-    <script>
-        const chatbox = document.getElementById("chatbox");
-        const userInput = document.getElementById("userInput");
-        const sendBtn = document.getElementById("sendBtn");
-
-        const replies = [
-            "Tera dimag khali hai, jaa pehle usay bhar ke aa.",
-            "Itni slow baat kar raha hai, lagta hai dimaag dial-up connection pe hai.",
-            "Tujhse zyada toh meri purani chappal useful hai.",
-            "Aqal ka andha, logic ka loola.",
-            "Teri soch WiFi jaisi, kabhi aati hai kabhi jaati hai.",
-            "Tera presence bhi offline lagta hai, refresh le bhai."
-        ];
-
-        sendBtn.onclick = () => {
-            const userMsg = userInput.value.trim();
-            if (userMsg === "") return;
-
-            const userDiv = document.createElement("div");
-            userDiv.className = "msg user";
-            userDiv.textContent = "You: " + userMsg;
-            chatbox.appendChild(userDiv);
-
-            const botReply = replies[Math.floor(Math.random() * replies.length)];
-            const botDiv = document.createElement("div");
-            botDiv.className = "msg bot";
-            botDiv.textContent = "JugtainGPT: " + botReply;
-            chatbox.appendChild(botDiv);
-
-            chatbox.scrollTop = chatbox.scrollHeight;
-            userInput.value = "";
-        };
-    </script>
+  <div class="wrapper">
+    <h1>Jugtaingpt</h1>
+    <div id="chat-box" class="chat-box"></div>
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="Teri baari, likh!">
+      <button onclick="sendMessage()">Phaaro</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
 </body>
 </html>
