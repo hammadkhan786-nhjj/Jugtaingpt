@@ -1,0 +1,424 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hammad.Ai — Personal AI Portal</title>
+  <meta name="description" content="Hammad.Ai — advanced, extensible web AI interface with API/proxy support, chat, assistant templates, file upload, streaming, and developer tools." />
+  <style>
+    /* ---------- Minimal, modern UI (Tailwind-like manual) ---------- */
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#94a3b8;--accent:#06b6d4;--glass:rgba(255,255,255,0.04);--radius:14px}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;color:#e6eef6;background:linear-gradient(180deg,#071028 0%,#08122a 100%);-webkit-font-smoothing:antialiased}
+    .wrap{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:16px}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo .mark{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#06b6d4,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700;color:#021124}
+    h1{font-size:20px;margin:0}
+    .subtitle{color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:18px}
+    .card{background:var(--card);padding:16px;border-radius:var(--radius);box-shadow:0 6px 30px rgba(2,6,23,.6);border:1px solid rgba(255,255,255,0.03)}
+    .side{height:78vh;overflow:auto}
+    .main{height:78vh;display:flex;flex-direction:column}
+    .sectionTitle{font-weight:600;margin-bottom:8px}
+    label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted)}
+    input[type=text],select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:var(--glass);color:#e6eef6}
+    button{background:linear-gradient(90deg,var(--accent),#7c3aed);border:none;padding:10px 12px;border-radius:12px;color:#021124;font-weight:700;cursor:pointer}
+    .small{font-size:13px;color:var(--muted)}
+    .modelList{display:flex;flex-direction:column;gap:8px}
+    .modelItem{padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);display:flex;justify-content:space-between;align-items:center}
+    .chatArea{flex:1;display:flex;flex-direction:column;gap:10px;padding:12px;overflow:auto}
+    .msg{max-width:80%;padding:12px;border-radius:12px}
+    .msg.user{margin-left:auto;background:linear-gradient(180deg,#072338,#0b2d45)}
+    .msg.ai{margin-right:auto;background:linear-gradient(180deg,#07202a,#072b37)}
+    .controls{display:flex;gap:8px;align-items:center;padding:12px;margin-top:8px}
+    .fileList{display:flex;flex-direction:column;gap:6px}
+    pre.code{background:#011627;padding:12px;border-radius:8px;overflow:auto;color:#cbd5e1}
+    footer{margin-top:14px;color:var(--muted);font-size:13px}
+    .tag{padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02);font-size:12px}
+    .hint{color:var(--muted);font-size:12px}
+    @media(max-width:980px){.grid{grid-template-columns:1fr;}.side{height:auto}.main{height:auto}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">
+        <div class="mark">HA</div>
+        <div>
+          <h1>Hammad.Ai</h1>
+          <div class="subtitle">Highly-detailed, extensible AI portal — local-first UI with API & proxy hooks</div>
+        </div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+        <div class="tag">Version: 1.0 (template)</div>
+        <div class="small">Theme: Dark</div>
+      </div>
+    </header><div class="grid">
+  <!-- LEFT: Controls, models, prompt templates, settings -->
+  <aside class="card side">
+    <div class="section">
+      <div class="sectionTitle">Connection & API</div>
+      <label>Use built-in proxy (recommended)</label>
+      <select id="connectionMode">
+        <option value="proxy">Proxy (server forwards requests)</option>
+        <option value="direct">Direct API (expose key locally)</option>
+        <option value="mock">Mock / Local models</option>
+      </select>
+      <div style="height:8px"></div>
+      <label>API Endpoint (if direct)</label>
+      <input id="apiEndpoint" type="text" placeholder="https://api.openai.com/v1/chat/completions" />
+      <div style="height:8px"></div>
+      <label>API Key (if direct) — use env on server, not here</label>
+      <input id="apiKey" type="text" placeholder="sk-... (avoid pasting in public)" />
+
+      <div style="height:12px"></div>
+      <label class="sectionTitle">Proxy / Server URL</label>
+      <input id="proxyUrl" type="text" placeholder="https://your-server.example/api/proxy" />
+      <div class="hint">If you host a small proxy, Hammad.Ai will call the proxy which attaches your secret key server-side (safe).</div>
+
+      <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
+
+      <div class="sectionTitle">Model / Engines</div>
+      <div class="modelList" id="modelList">
+        <!-- populated by JS with model cards -->
+      </div>
+      <div style="height:8px"></div>
+      <label>Custom model id</label>
+      <input id="customModel" type="text" placeholder="e.g., gpt-4o-mini, my-local-llm" />
+
+      <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
+
+      <div class="sectionTitle">Safety & Limits</div>
+      <label>Max tokens per response</label>
+      <input id="maxTokens" type="text" placeholder="e.g., 1024" />
+      <label>Temperature (0.0 - 1.2)</label>
+      <input id="temperature" type="text" placeholder="0.7" />
+      <label>Top-p</label>
+      <input id="topP" type="text" placeholder="1.0" />
+
+    </div>
+
+    <div style="height:12px"></div>
+    <div class="sectionTitle">Developer Tools</div>
+    <div class="small">Frontend debug log</div>
+    <pre id="log" class="code" style="height:140px">// logs...</pre>
+    <div style="height:10px"></div>
+    <button id="clearLog">Clear Log</button>
+
+    <div style="height:12px"></div>
+    <div class="sectionTitle">Quick Links & Notes</div>
+    <div class="small">• Recommended: run a small Node/Express proxy to keep your API key secret.</div>
+    <div class="small">• Use streaming endpoints for faster UX (SSE / fetch streaming).</div>
+    <div class="small">• This is a frontend template — adapt server examples below to your stack.</div>
+
+  </aside>
+
+  <!-- RIGHT: Chat area, composing, files, prompt templates -->
+  <main class="card main">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div class="sectionTitle">Chat — Hammad.Ai Assistant</div>
+        <div class="small">Create prompts, upload files, choose model and send. History is local-first (IndexedDB) by default.</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="tag" id="tokensTag">Tokens: 0</div>
+        <button id="exportConv">Export</button>
+        <button id="importConv">Import</button>
+      </div>
+    </div>
+
+    <div class="chatArea" id="chatArea" aria-live="polite">
+      <!-- messages injected here -->
+    </div>
+
+    <div class="controls">
+      <input id="promptInput" type="text" placeholder="Type your prompt here — e.g., 'Explain transformer attention'" style="flex:1" />
+      <button id="sendBtn">Send</button>
+      <button id="voiceBtn">🎤</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:10px;align-items:flex-start">
+      <div style="flex:1">
+        <div class="sectionTitle">Files / Context</div>
+        <input id="fileInput" type="file" multiple />
+        <div class="fileList" id="fileList"></div>
+      </div>
+      <div style="width:320px">
+        <div class="sectionTitle">Prompt Templates</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="templateBtn" data-tmpl="summarize">Summarize</button>
+          <button class="templateBtn" data-tmpl="translate">Translate (EN↔UR)</button>
+          <button class="templateBtn" data-tmpl="codeReview">Code Review</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="small">Note: This template is a single-file demo — move sensitive keys to a server proxy. See server examples in the documentation comments embedded in the HTML file.</div>
+    </footer>
+  </main>
+</div>
+
+  </div>  <!-- ---------- Script: behavior, API integration hooks, offline-first caching ---------- -->  <script>
+    // Hammad.Ai — Single-file frontend template
+    // Features implemented:
+    // - Model list + selector
+    // - Connection modes: proxy, direct, mock
+    // - Conversation history (localStorage; replace by IndexedDB for production)
+    // - File uploads (reads as text blobs and includes as context)
+    // - Example API call flow with retries, error handling, streaming placeholder
+    // - Export/Import conversation JSON
+    // - Developer debug log and simple token estimator
+
+    const EL = id => document.getElementById(id);
+    const logEl = EL('log');
+    const chatArea = EL('chatArea');
+    const modelListEl = EL('modelList');
+
+    // ---------- Simple in-memory models list ----------
+    const BUILT_IN_MODELS = [
+      {id:'gpt-4o-mini', name:'GPT-4o-mini (example)',desc:'High-quality multi-purpose'},
+      {id:'hammad-local-7b', name:'HammadLocal-7B (mock)',desc:'Run locally.'},
+      {id:'text-davinci-003', name:'davinci-003 (compat)',desc:'Legacy high-capacity model'}
+    ];
+
+    function initModels(){
+      modelListEl.innerHTML='';
+      for(const m of BUILT_IN_MODELS){
+        const el = document.createElement('div'); el.className='modelItem';
+        el.innerHTML = `<div style="flex:1"><strong>${m.name}</strong><div class='small'>${m.desc}</div></div><div><button data-model='${m.id}'>Select</button></div>`;
+        modelListEl.appendChild(el);
+        el.querySelector('button').onclick=()=>{EL('customModel').value=m.id;appendLog('Selected model '+m.id)};
+      }
+    }
+
+    // ---------- Logging & utilities ----------
+    function appendLog(s){
+      const t = new Date().toLocaleTimeString();
+      logEl.textContent = `// [${t}] ` + s + '\n' + logEl.textContent;
+    }
+    EL('clearLog').onclick=()=>logEl.textContent='';
+
+    // ---------- Persistent conversation store (localStorage quickdemo) ----------
+    const STORE_KEY = 'hammadai_conversations_v1';
+    function saveConv(conv){localStorage.setItem(STORE_KEY, JSON.stringify(conv));}
+    function loadConv(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||{messages:[]}}catch(e){return {messages:[]}}}
+
+    let state = loadConv();
+    initModels();
+
+    function renderChat(){
+      chatArea.innerHTML='';
+      let tokens=0;
+      for(const m of state.messages){
+        const div = document.createElement('div'); div.className='msg '+(m.role==='user'?'user':'ai');
+        div.innerHTML = `<div style='font-size:13px;margin-bottom:6px;color:var(--muted)'>${m.role.toUpperCase()}</div><div>${escapeHtml(m.content)}</div>`;
+        chatArea.appendChild(div);
+        tokens += estimateTokens(m.content);
+      }
+      EL('tokensTag').textContent = `Tokens: ${tokens}`;
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br/>');}
+
+    function estimateTokens(text){
+      // Very rough estimator: 1 token ~= 4 chars
+      return Math.ceil(text.length/4);
+    }
+
+    renderChat();
+
+    // ---------- File handling (reads as text if possible) ----------
+    const fileInput = EL('fileInput');
+    const fileList = EL('fileList');
+    let attachedFiles = [];
+    fileInput.onchange = async (e)=>{
+      const files = Array.from(e.target.files);
+      attachedFiles = [];
+      fileList.innerHTML='';
+      for(const f of files){
+        const reader = new FileReader();
+        reader.onload = ()=>{
+          const content = reader.result;
+          attachedFiles.push({name:f.name,type:f.type,size:f.size,content:content});
+          const row = document.createElement('div'); row.className='small'; row.textContent = `${f.name} — ${Math.round(f.size/1024)} KB`;
+          fileList.appendChild(row);
+          appendLog('Loaded file '+f.name);
+        };
+        // Try read as text. For binary files show placeholder.
+        if(f.type.startsWith('text')||f.name.match(/\.md$|\.json$|\.csv$|\.js$|\.py$/i)) reader.readAsText(f);
+        else reader.readAsDataURL(f);
+      }
+    };
+
+    // ---------- Templates ----------
+    document.querySelectorAll('.templateBtn').forEach(b=>b.onclick=(e)=>{
+      const t = e.target.getAttribute('data-tmpl');
+      if(t==='summarize') EL('promptInput').value = 'Summarize the following text into 5 bullet points:';
+      if(t==='translate') EL('promptInput').value = 'Translate the following text to Urdu in a neutral, clear style:';
+      if(t==='codeReview') EL('promptInput').value = 'Review the following code and provide clear, numbered suggestions for improvement, plus an improved version where appropriate:';
+    });
+
+    // ---------- Send flow (core) ----------
+    EL('sendBtn').onclick = async ()=>{
+      const prompt = EL('promptInput').value.trim();
+      if(!prompt) return appendLog('Empty prompt — aborted');
+      // Add user message
+      const userMsg = {role:'user',content:prompt,timestamp:Date.now()};
+      state.messages.push(userMsg); saveConv(state); renderChat();
+
+      // Prepare request payload to API
+      const payload = {
+        model: EL('customModel').value || 'gpt-4o-mini',
+        messages: [
+          // optionally system role
+          {role:'system',content:'You are Hammad.Ai assistant: helpful, concise, and safe.'},
+          ...state.messages.slice(-10).map(m=>({role:m.role,content:m.content}))
+        ],
+        temperature: parseFloat(EL('temperature').value||0.7),
+        max_tokens: parseInt(EL('maxTokens').value||512),
+        top_p: parseFloat(EL('topP').value||1.0)
+      };
+
+      // If files are attached, append short context
+      if(attachedFiles.length){
+        payload.messages.push({role:'system',content:'Attached files: ' + attachedFiles.map(f=>f.name+' ('+Math.round(f.size/1024)+'KB)').join(', ')});
+      }
+
+      appendLog('Prepared payload for model '+payload.model);
+
+      try{
+        const mode = EL('connectionMode').value;
+        let aiText='';
+        if(mode==='mock'){
+          // Local mock behavior: echo with note
+          aiText = '[MOCK] ' + simpleMockReply(prompt);
+        } else {
+          // Call remote endpoint (proxy or direct)
+          const endpoint = mode==='proxy' ? (EL('proxyUrl').value || '/api/proxy') : (EL('apiEndpoint').value);
+          aiText = await callAPIWithRetries(endpoint, payload, mode);
+        }
+
+        const aiMsg = {role:'assistant',content:aiText,timestamp:Date.now()};
+        state.messages.push(aiMsg); saveConv(state); renderChat();
+      }catch(err){
+        appendLog('Error sending: '+err.message);
+        state.messages.push({role:'assistant',content:'[Error] '+err.message}); saveConv(state); renderChat();
+      }
+    };
+
+    function simpleMockReply(prompt){
+      return `I received your prompt: "${prompt.slice(0,200)}". This is a mock reply. For full functionality, configure the proxy with a real model.`;
+    }
+
+    // ---------- Export / Import ----------
+    EL('exportConv').onclick = ()=>{
+      const blob = new Blob([JSON.stringify(state, null, 2)],{type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='hammadai-conversation.json'; a.click(); URL.revokeObjectURL(url);
+    };
+    EL('importConv').onclick = ()=>{
+      const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange = (e)=>{
+        const f = e.target.files[0]; const r = new FileReader(); r.onload=()=>{ try{ state = JSON.parse(r.result); saveConv(state); renderChat(); appendLog('Imported conversation.'); }catch(e){appendLog('Import failed: '+e.message);} }; r.readAsText(f);
+      }; inp.click();
+    };
+
+    // ---------- Call API with retries & proxy header handling ----------
+    async function callAPIWithRetries(endpoint,payload,mode){
+      appendLog('Calling endpoint: '+endpoint+' (mode='+mode+')');
+      const maxRetries = 2; let attempt=0; let lastErr=null;
+      while(attempt<=maxRetries){
+        try{
+          attempt++;
+          const headers = {'Content-Type':'application/json'};
+          // If direct mode and apiKey provided, attach Authorization header (not safe in browser!)
+          if(mode==='direct' && EL('apiKey').value){ headers['Authorization'] = 'Bearer '+EL('apiKey').value; }
+
+          const res = await fetch(endpoint, {method:'POST',headers,body:JSON.stringify(payload)});
+
+          if(!res.ok){
+            const text = await res.text();
+            throw new Error('HTTP '+res.status+': '+text.slice(0,300));
+          }
+
+          // Try to parse common shapes: {choices:[{message:{content:...}}]} or {output_text: '...'}
+          const data = await res.json();
+          appendLog('Response received');
+
+          // Common shapes handling (adapt to your backend)
+          if(data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) return data.choices[0].message.content;
+          if(data.output_text) return data.output_text;
+          if(data.text) return data.text;
+
+          // If streaming used, the server can send a single field 'stream': true and send SSE — not handled here.
+          return JSON.stringify(data).slice(0,2000);
+        }catch(err){
+          lastErr = err; appendLog('Attempt '+attempt+' failed: '+err.message);
+          if(attempt>maxRetries) throw lastErr; // bubble up
+          await new Promise(r=>setTimeout(r,800*attempt));
+        }
+      }
+    }
+
+    // ---------- Simple voice input integration (Web Speech API) ----------
+    EL('voiceBtn').onclick = ()=>{
+      try{
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US'; recognition.interimResults=false; recognition.maxAlternatives=1;
+        recognition.onresult = (e)=>{ EL('promptInput').value = e.results[0][0].transcript; appendLog('Voice input: '+e.results[0][0].transcript); };
+        recognition.onerror = (e)=>appendLog('Speech error: '+e.error);
+        recognition.start();
+      }catch(e){ appendLog('Speech API not available: '+e.message); }
+    };
+
+    // ---------- Clear conversation ----------
+    EL('clearBtn').onclick = ()=>{ if(confirm('Clear conversation?')){ state={messages:[]}; saveConv(state); renderChat(); appendLog('Conversation cleared'); } };
+
+    // ---------- Helper: sample server proxy implementation (commented) ----------
+    /*
+    ---------- Node.js (Express) proxy example (run on your server) ----------
+    // npm install express node-fetch
+    const express = require('express');
+    const fetch = require('node-fetch');
+    const app = express(); app.use(express.json());
+    const API_KEY = process.env.OPENAI_KEY; // set on server
+
+    app.post('/api/proxy', async (req,res)=>{
+      try{
+        // Validate & rate-limit per-user here
+        const body = req.body;
+        const r = await fetch('https://api.openai.com/v1/chat/completions',{
+          method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+API_KEY}, body: JSON.stringify(body)
+        });
+        const data = await r.text(); // proxy raw
+        res.status(r.status).send(data);
+      }catch(e){ res.status(500).json({error:e.message}); }
+    });
+
+    app.listen(3000, ()=>console.log('Proxy running on 3000'));
+    */
+
+    // ---------- Security & deployment notes (short) ----------
+    /*! 
+      SECURITY BEST PRACTICES (read carefully):
+      - Never put your real API secret into front-end code. Use a server-side proxy.
+      - Rate-limit requests server-side to protect costs and privacy.
+      - Sanitize user inputs if your server stores logs.
+      - If you accept file uploads, scan/validate file types and sizes on the server.
+      - For production, persist conversations in a server DB with per-user encryption.
+    */
+
+    // ---------- Accessibility notes ----------
+    /*! 
+      - All interactive elements should be reachable by keyboard (tab order), labeled with aria-*, and color-contrast checked.
+      - Use role attributes and aria-live for chat updates.
+    */
+
+    // ---------- Final small helpers ----------
+    function appendLogIf(msg){ appendLog(msg); }
+
+  </script></body>
+</html>
