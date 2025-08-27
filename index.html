@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AccoMart — Digital ID Marketplace (Single File)</title>
+  <meta name="description" content="AccoMart single-file app (frontend-only). Demo + lightweight marketplace for listing, buying, escrow simulation & KYC. Not production-ready."/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .glass{ background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); backdrop-filter: blur(6px); }
+    .btn{ @apply inline-flex items-center gap-2 rounded-2xl px-4 py-2 font-semibold; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <header class="bg-slate-800/60 border-b border-white/5 sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-500 grid place-content-center font-bold">A</div>
+        <div>
+          <div class="text-lg font-bold">AccoMart</div>
+          <div class="text-xs text-slate-300">Digital ID Marketplace — Frontend single-file</div>
+        </div>
+      </div>
+      <nav class="ml-auto flex items-center gap-2 text-sm">
+        <button onclick="nav('browse')" class="px-3 py-1 rounded-md bg-slate-700">Browse</button>
+        <button onclick="nav('sell')" class="px-3 py-1 rounded-md bg-slate-700">Sell</button>
+        <button onclick="nav('wallet')" class="px-3 py-1 rounded-md bg-slate-700">Wallet</button>
+        <button onclick="nav('profile')" class="px-3 py-1 rounded-md bg-slate-700">Profile</button>
+        <button onclick="nav('admin')" class="px-3 py-1 rounded-md bg-amber-500 text-black">Admin</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <section id="banner" class="p-4 rounded-xl glass border border-white/5">
+      <div class="flex items-start gap-4">
+        <div class="grow">
+          <h1 class="text-2xl font-bold">Host this single HTML file to run a working AccoMart frontend</h1>
+          <p class="mt-2 text-sm text-slate-300">This is a <strong>frontend-only</strong> single-file app that simulates listings, escrow, wallet, KYC and disputes using browser storage (localStorage). It is NOT a full production backend. Use it for demo, offline marketplace flows, or to hand to developers as a frontend reference.</p>
+          <p class="mt-2 text-xs text-amber-200">⚠️ Legal notice: Selling/transferring accounts may violate third-party platform Terms of Service. Use at your own risk. Read platform policies before transacting.</p>
+        </div>
+        <div class="w-48">
+          <div class="text-xs text-slate-400">Quick actions</div>
+          <div class="mt-2 flex flex-col gap-2">
+            <button class="btn bg-emerald-500 text-black" onclick="demoSeed()">Seed Demo Data</button>
+            <button class="btn bg-orange-500 text-black" onclick="exportData()">Export Data (JSON)</button>
+            <button class="btn bg-slate-700" onclick="importDataPrompt()">Import Data</button>
+            <button class="btn bg-red-600" onclick="clearAll()">Clear All</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Browse -->
+    <section id="browse" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold">Browse Listings</h2>
+        <div class="flex items-center gap-2">
+          <input id="search" oninput="render()" placeholder="search title or platform" class="px-3 py-2 rounded-md text-slate-900" />
+          <select id="filterPlatform" onchange="render()" class="px-3 py-2 rounded-md text-slate-900">
+            <option value="">All platforms</option>
+          </select>
+          <select id="sortBy" onchange="render()" class="px-3 py-2 rounded-md text-slate-900">
+            <option value="new">Newest</option>
+            <option value="priceAsc">Price: Low → High</option>
+            <option value="priceDesc">Price: High → Low</option>
+            <option value="rating">Seller Rating</option>
+          </select>
+        </div>
+      </div>
+      <div id="listingsGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- Sell -->
+    <section id="sell" class="hidden">
+      <div class="glass rounded-xl p-4 border border-white/5">
+        <h2 class="text-xl font-bold">Sell Your Account</h2>
+        <form id="sellForm" onsubmit="submitListing(event)" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input name="title" placeholder="Title e.g. PUBG Ace Lobby" required class="p-2 rounded-md text-slate-900" />
+          <input name="platform" placeholder="Platform e.g. PUBG, TikTok" required class="p-2 rounded-md text-slate-900" />
+          <input name="price" type="number" placeholder="Asking Price (Rs)" required class="p-2 rounded-md text-slate-900" />
+          <input name="sellerName" placeholder="Your display name" required class="p-2 rounded-md text-slate-900" />
+          <input name="sellerPhone" placeholder="Phone (for KYC)" class="p-2 rounded-md text-slate-900" />
+          <input name="promo" placeholder="promo: none/featured" class="p-2 rounded-md text-slate-900" />
+          <textarea name="desc" placeholder="Full description & transfer instructions" class="p-2 rounded-md text-slate-900 sm:col-span-2"></textarea>
+          <input name="shots" placeholder="Comma separated image URLs" class="p-2 rounded-md text-slate-900 sm:col-span-2" />
+          <div class="sm:col-span-2 flex justify-end gap-2">
+            <button class="btn bg-slate-700" type="button" onclick="prefill()">Demo Fill</button>
+            <button class="btn bg-emerald-500 text-black" type="submit">Submit Listing</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Wallet -->
+    <section id="wallet" class="hidden">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="glass rounded-xl p-4 border border-white/5">
+          <h2 class="text-lg font-bold">Wallet</h2>
+          <div class="mt-2">Balance: <span id="walletBalance">Rs 0</span></div>
+          <div class="mt-4 flex gap-2">
+            <input id="topAmt" placeholder="Amount Rs" class="p-2 rounded-md text-slate-900" />
+            <button class="btn bg-emerald-500 text-black" onclick="doTopup()">Top Up (Sim)</button>
+          </div>
+          <div class="mt-4">
+            <button class="btn bg-slate-700" onclick="showWithdraw()">Withdraw (Sim)</button>
+            <div id="withdrawArea" class="mt-2 hidden">
+              <input id="wdAmt" placeholder="Amount Rs" class="p-2 rounded-md text-slate-900" />
+              <button class="btn bg-amber-500 text-black" onclick="doWithdraw()">Request Withdraw</button>
+            </div>
+          </div>
+        </div>
+        <div class="glass rounded-xl p-4 border border-white/5">
+          <h2 class="text-lg font-bold">Escrow Holds</h2>
+          <div id="escrowList" class="mt-2 text-sm text-slate-300">No holds</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Profile -->
+    <section id="profile" class="hidden">
+      <div class="glass rounded-xl p-4 border border-white/5">
+        <h2 class="text-lg font-bold">Profile & KYC</h2>
+        <div class="mt-2 grid sm:grid-cols-2 gap-3">
+          <input id="myName" placeholder="Your name" class="p-2 rounded-md text-slate-900" />
+          <input id="myEmail" placeholder="Email" class="p-2 rounded-md text-slate-900" />
+          <input id="myPhone" placeholder="Phone" class="p-2 rounded-md text-slate-900" />
+          <input id="myCnic" placeholder="CNIC / Govt ID (sim)" class="p-2 rounded-md text-slate-900" />
+          <textarea id="myBio" placeholder="About you (public)" class="p-2 rounded-md text-slate-900 sm:col-span-2"></textarea>
+          <div class="sm:col-span-2 flex justify-end gap-2">
+            <button class="btn bg-emerald-500 text-black" onclick="saveProfile()">Save Profile</button>
+            <button class="btn bg-slate-700" onclick="verifyKYC()">Submit KYC (Sim)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass rounded-xl p-4 border border-white/5 mt-4">
+        <h3 class="font-bold">Your Listings</h3>
+        <div id="myListings" class="mt-2"></div>
+      </div>
+    </section>
+
+    <!-- Admin -->
+    <section id="admin" class="hidden">
+      <div class="glass rounded-xl p-4 border border-white/5">
+        <h2 class="text-lg font-bold">Admin Panel (Sim)</h2>
+        <p class="text-sm text-slate-300">Use the admin key to manage disputes, release escrow and mark sales as complete. Admin key: <strong>ADMIN-ACCOMART</strong></p>
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <button class="btn bg-emerald-500 text-black" onclick="releaseAll()">Release All Escrows (Sim)</button>
+          <button class="btn bg-red-600" onclick="refundAll()">Refund All Escrows (Sim)</button>
+          <button class="btn bg-slate-700" onclick="showAllOrders()">Show Orders</button>
+          <button class="btn bg-slate-700" onclick="showDisputes()">Show Disputes</button>
+        </div>
+        <div id="adminLog" class="mt-4 text-sm text-slate-300"></div>
+      </div>
+    </section>
+
+    <footer class="text-xs text-slate-400">AccoMart Single File — FRONTEND ONLY. For production you must add backend, payment integrations, KYC verification, legal review and security hardening.</footer>
+  </main>
+
+<script>
+/* -------------------------
+  Single-file AccoMart app
+  - Stores data in localStorage
+  - Simulates escrow & wallet
+  - Intended to be hosted as static HTML
+---------------------------*/
+
+const KEY = 'accomart_v1';
+let state = {
+  user: { name:'Guest', email:'', phone:'', cnic:'', verified:false, wallet:0 },
+  listings: [],
+  orders: [], // {id, listingId, buyer, sellerName, price, status, escrowAmount}
+  disputes: []
+};
+
+// ---------- Utilities ----------
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); render(); }
+function load(){ const d = localStorage.getItem(KEY); if(d) state = JSON.parse(d); }
+function money(n){ return 'Rs ' + Number(n||0).toLocaleString(); }
+function uid(){ return Date.now() + '-' + Math.floor(Math.random()*9999); }
+function nav(id){
+  document.querySelectorAll('main section').forEach(s=> s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  if(id==='browse') render();
+  if(id==='profile') renderProfile();
+  if(id==='wallet') renderWallet();
+  if(id==='admin') renderAdmin();
+}
+
+// ---------- Demo seed ----------
+function demoSeed(){
+  state = {
+    user: { name:'Guest', email:'', phone:'', cnic:'', verified:false, wallet:0 },
+    listings: [
+      {id:1, title:'PUBG Ace Lobby • M416 Glacier', platform:'PUBG', price:35000, desc:'Email transfer. No bans.', shots:['https://images.unsplash.com/photo-1535223289827-42f1e9919769?q=80&w=1200&auto=format&fit=crop'], sellerName:'SellerOne', sellerVerified:true, sellerRating:4.8, promo:'featured'},
+      {id:2, title:'Free Fire Cobra Evo Bundle', platform:'Free Fire', price:18000, desc:'Facebook unlink included.', shots:['https://images.unsplash.com/photo-1590602847861-8c46be3f0c81?q=80&w=1200&auto=format&fit=crop'], sellerName:'AhsanPro', sellerVerified:false, sellerRating:4.2, promo:'trending'},
+      {id:3, title:'IG 50k Followers • Travel Niche', platform:'Instagram', price:60000, desc:'Original email included.', shots:[], sellerName:'SanaV', sellerVerified:true, sellerRating:4.9, promo:'none'}
+    ],
+    orders: [],
+    disputes: []
+  };
+  save();
+  alert('Demo data seeded.');
+  render();
+}
+
+// ---------- Render listings ----------
+function render(){
+  load();
+  const grid = document.getElementById('listingsGrid'); grid.innerHTML='';
+  const search = document.getElementById('search').value.toLowerCase();
+  const platformFilter = document.getElementById('filterPlatform');
+  // populate platform options if empty
+  if(!platformFilter.options.length || platformFilter.options.length < 3){
+    const plats = Array.from(new Set(state.listings.map(l=>l.platform))).sort();
+    platformFilter.innerHTML = '<option value=\"\">All platforms</option>' + plats.map(p=>`<option>${p}</option>`).join('');
+  }
+  const plat = document.getElementById('filterPlatform').value;
+  const sort = document.getElementById('sortBy').value;
+  let list = state.listings.filter(l => (!search || l.title.toLowerCase().includes(search) || (l.platform||'').toLowerCase().includes(search)) && (!plat || l.platform===plat));
+  if(sort==='priceAsc') list.sort((a,b)=>a.price-b.price);
+  else if(sort==='priceDesc') list.sort((a,b)=>b.price-a.price);
+  else if(sort==='rating') list.sort((a,b)=>(b.sellerRating||0)-(a.sellerRating||0));
+  else list.sort((a,b)=>b.id - a.id);
+
+  if(!list.length) grid.innerHTML = '<div class="text-slate-400">No listings found.</div>';
+  list.forEach(l=>{
+    const el = document.createElement('div');
+    el.className = 'glass rounded-xl p-3 border border-white/5';
+    el.innerHTML = `
+      <div class="h-40 bg-cover bg-center rounded-md" style="background-image:url('${l.shots && l.shots[0] ? l.shots[0] : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'}')"></div>
+      <div class="mt-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-semibold">${escapeHtml(l.title)}</div>
+            <div class="text-xs text-slate-300">${escapeHtml(l.platform)} • Seller: ${escapeHtml(l.sellerName)} ${l.sellerVerified? '• ✅':''} • ⭐ ${l.sellerRating||'—'}</div>
+          </div>
+          <div class="text-lg font-bold">${money(l.price)}</div>
+        </div>
+        <div class="mt-2 text-sm text-slate-300 line-clamp-3">${escapeHtml(l.desc || '')}</div>
+        <div class="mt-3 flex gap-2">
+          <button class="btn bg-emerald-500 text-black" onclick='openDetail(${l.id})'>View</button>
+          <button class="btn bg-slate-700" onclick='startBuy(${l.id})'>Buy (Escrow)</button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(el);
+  });
+}
+
+// ---------- Detail / Buy ----------
+let currentDetail = null;
+function openDetail(id){
+  const l = state.listings.find(x=>x.id==id);
+  if(!l) return alert('Not found');
+  currentDetail = l;
+  const w = window.open('','_blank','width=800,height=700');
+  const html = `
+    <html><head><title>${escapeHtml(l.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+    <body style="font-family:sans-serif;padding:20px;background:#0f172a;color:#fff">
+      <h2>${escapeHtml(l.title)}</h2>
+      <p><strong>Platform:</strong> ${escapeHtml(l.platform)}<br/>
+      <strong>Price:</strong> ${money(l.price)} <br/>
+      <strong>Seller:</strong> ${escapeHtml(l.sellerName)} ${l.sellerVerified? '• ✅':''} • ⭐ ${l.sellerRating||'—'}</p>
+      <p>${escapeHtml(l.desc||'')}</p>
+      <p><button onclick="opener.startBuy(${l.id}); window.close();" style="padding:10px 14px;border-radius:8px;background:#10b981;color:#000;border:none;font-weight:700">Buy via Escrow</button></p>
+    </body></html>
+  `;
+  w.document.write(html);
+  w.document.close();
+}
+
+function startBuy(id){
+  const l = state.listings.find(x=>x.id==id);
+  if(!l) return alert('Invalid listing');
+  const buyer = state.user.name || 'Guest';
+  const order = { id: uid(), listingId:id, buyer: buyer, sellerName: l.sellerName, price: l.price, status:'initiated', escrowAmount: l.price, createdAt: Date.now() };
+  state.orders.push(order);
+  // Simulate paying: move funds from user.wallet to escrow if available; otherwise set as external paid
+  if(state.user.wallet >= l.price){ state.user.wallet -= l.price; order.status='escrow_funded'; order.funded=true; pushEscrow(order.id); }
+  else { order.status='awaiting_payment'; }
+  save();
+  alert('Order created. If you have wallet balance it funds escrow instantly. Admin can release or refund in Admin panel.');
+  render();
+  nav('wallet');
+}
+
+function pushEscrow(orderId){
+  const o = state.orders.find(x=>x.id==orderId);
+  if(!o) return;
+  // create a hold (we store inside order)
+  o.escrowHeld = true;
+  o.status = 'escrow_funded';
+  // add to escrow list implicitly
+  save();
+}
+
+// ---------- Submit listing ----------
+function submitListing(e){
+  e.preventDefault();
+  const f = e.target;
+  const data = Object.fromEntries(new FormData(f).entries());
+  const id = state.listings.length ? Math.max(...state.listings.map(u=>u.id))+1 : 1;
+  const listing = {
+    id,
+    title: data.title,
+    platform: data.platform,
+    price: Number(data.price||0),
+    desc: data.desc,
+    shots: data.shots ? data.shots.split(',').map(s=>s.trim()).filter(Boolean) : [],
+    sellerName: data.sellerName || state.user.name || 'Guest',
+    sellerVerified: false,
+    sellerRating: 0,
+    promo: data.promo || 'none'
+  };
+  state.listings.unshift(listing);
+  save();
+  f.reset();
+  alert('Listing submitted. It is live immediately (frontend-only). For production add backend & KYC checks.');
+  nav('browse');
+}
+
+// ---------- Profile ----------
+function saveProfile(){
+  load();
+  state.user.name = document.getElementById('myName').value || state.user.name;
+  state.user.email = document.getElementById('myEmail').value || state.user.email;
+  state.user.phone = document.getElementById('myPhone').value || state.user.phone;
+  state.user.cnic = document.getElementById('myCnic').value || state.user.cnic;
+  state.user.bio = document.getElementById('myBio').value || state.user.bio;
+  save();
+  alert('Profile saved (sim).');
+  renderProfile();
+}
+function verifyKYC(){
+  // simulate KYC approval
+  state.user.verified = true;
+  save();
+  alert('KYC submitted & approved (simulation). You now get Verified badge for new listings.');
+  renderProfile();
+}
+
+function renderProfile(){
+  load();
+  document.getElementById('myName').value = state.user.name || '';
+  document.getElementById('myEmail').value = state.user.email || '';
+  document.getElementById('myPhone').value = state.user.phone || '';
+  document.getElementById('myCnic').value = state.user.cnic || '';
+  document.getElementById('myBio').value = state.user.bio || '';
+  const myList = document.getElementById('myListings'); myList.innerHTML='';
+  const mine = state.listings.filter(l=> l.sellerName === (state.user.name||'Guest'));
+  if(!mine.length) myList.innerHTML = '<div class="text-slate-400">You have no listings.</div>';
+  mine.forEach(l=>{
+    const d = document.createElement('div'); d.className='p-2 border rounded-md mt-2 bg-slate-800/40';
+    d.innerHTML = `<div class="flex items-center justify-between"><div>${escapeHtml(l.title)} • ${escapeHtml(l.platform)}</div><div>${money(l.price)}</div></div>
+      <div class="mt-2 text-sm text-slate-300">${escapeHtml(l.desc||'')}</div>
+      <div class="mt-2 flex gap-2"><button class="btn bg-slate-700" onclick="editListing(${l.id})">Edit</button><button class="btn bg-red-600" onclick="removeListing(${l.id})">Remove</button></div>`;
+    myList.appendChild(d);
+  });
+}
+function editListing(id){
+  const l = state.listings.find(x=>x.id==id); if(!l) return;
+  window.prompt('Edit title', l.title) && alert('Edit via frontend not implemented. Use import/export to edit JSON.');
+}
+function removeListing(id){
+  if(!confirm('Remove listing?')) return;
+  state.listings = state.listings.filter(x=>x.id!=id); save(); renderProfile();
+}
+
+// ---------- Wallet ----------
+function doTopup(){
+  const amt = Number(document.getElementById('topAmt').value || 0);
+  if(!amt) return alert('Enter amount');
+  state.user.wallet = (state.user.wallet||0) + amt;
+  save();
+  renderWallet();
+  alert('Wallet topped up (sim).');
+}
+function showWithdraw(){ document.getElementById('withdrawArea').classList.toggle('hidden'); }
+function doWithdraw(){
+  const amt = Number(document.getElementById('wdAmt').value || 0);
+  if(!amt || amt > (state.user.wallet||0)) return alert('Invalid amount');
+  state.user.wallet -= amt;
+  save();
+  alert('Withdraw requested (sim). Admin will process.');
+  renderWallet();
+}
+function renderWallet(){
+  load();
+  document.getElementById('walletBalance').textContent = money(state.user.wallet||0);
+  const escrowHtml = (state.orders.filter(o=> o.status==='escrow_funded').map(o=> `<div class="p-2 border rounded-md mt-2 bg-slate-800/30">Order ${o.id} • ${money(o.price)} • Listing ${o.listingId}</div>`).join('')) || '<div class="text-slate-400">No holds</div>';
+  document.getElementById('escrowList').innerHTML = escrowHtml;
+}
+
+// ---------- Orders / Admin ----------
+function renderAdmin(){ renderWallet(); render(); document.getElementById('adminLog').innerHTML = ''; }
+function releaseAll(){
+  state.orders.filter(o=> o.status==='escrow_funded').forEach(o=>{
+    // payout to seller simulate: add to seller wallet by matching listing seller
+    const l = state.listings.find(x=>x.id==o.listingId);
+    // In frontend simulate seller wallet by adding to disputes array as records
+    o.status = 'released';
+    state.disputes.push({ id: uid(), type:'release', detail:`Released ${money(o.price)} to seller ${o.sellerName}`, orderId:o.id, time: Date.now() });
+  });
+  save();
+  alert('All escrows released (sim). Check Admin log.');
+  renderAdmin();
+}
+function refundAll(){
+  state.orders.filter(o=> o.status==='escrow_funded').forEach(o=> o.status='refunded');
+  save();
+  alert('All escrows refunded (sim).');
+  renderAdmin();
+}
+function showAllOrders(){
+  load();
+  const html = state.orders.map(o=> `<div class="p-2 border rounded-md mt-2">Order ${o.id} • ${money(o.price)} • Status: ${o.status}</div>`).join('') || '<div class="text-slate-400">No orders</div>';
+  document.getElementById('adminLog').innerHTML = html;
+}
+function showDisputes(){
+  const html = state.disputes.map(d=> `<div class="p-2 border rounded-md mt-2">Dispute ${d.id} • ${d.type} • ${d.detail}</div>`).join('') || '<div class="text-slate-400">No disputes</div>';
+  document.getElementById('adminLog').innerHTML = html;
+}
+
+// ---------- Import / Export ----------
+function exportData(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'accomart_data.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+function importDataPrompt(){
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+  inp.onchange = e => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const j = JSON.parse(ev.target.result);
+        if(confirm('Replace current data with imported data?')){ state = j; save(); render(); alert('Imported.'); }
+      } catch(err){ alert('Invalid JSON file'); }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+// ---------- Misc ----------
+function prefill(){
+  document.querySelector('[name=title]').value = 'CODM Legendary S6 | 80+ Legendary Skins';
+  document.querySelector('[name=platform]').value = 'CODM';
+  document.querySelector('[name=price]').value = 22000;
+  document.querySelector('[name=sellerName]').value = state.user.name || 'DemoSeller';
+  document.querySelector('[name=desc]').value = 'Legendary S6 account. Transfer by email change. No bans.';
+  document.querySelector('[name=shots]').value = '';
+  document.querySelector('[name=promo]').value = 'none';
+}
+function prefillDemoSell(){ prefill(); }
+function clearAll(){ if(!confirm('Clear local data? This will remove listings, orders and profile.')) return; localStorage.removeItem(KEY); state={user:{name:'Guest',wallet:0},listings:[],orders:[],disputes:[]}; render(); alert('Cleared'); }
+
+// helpers
+function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+// init
+(function init(){
+  load();
+  // ensure structure
+  state.user = state.user || { name:'Guest', wallet:0 };
+  state.listings = state.listings || [];
+  state.orders = state.orders || [];
+  state.disputes = state.disputes || [];
+  save();
+  nav('browse');
+})();
+</script>
+</body>
+</html>
